@@ -13,7 +13,7 @@ process.load('Configuration/EventContent/EventContent_cff')
 process.load('TrackingTools/TransientTrack/TransientTrackBuilder_cfi')
 
 process.MessageLogger.cerr.FwkReport.reportEvery = 100
-process.GlobalTag.globaltag = '76X_mcRun2_asymptotic_RunIIFall15DR76_v1'
+process.GlobalTag.globaltag = '94X_dataRun2_ReReco_EOY17_v2'
 
 #process.load("RecoTauTag/Configuration/RecoPFTauTag_cff")
 
@@ -37,6 +37,9 @@ process.hltHighLevel.HLTPaths = cms.vstring()
 from RecoJets.JetProducers.ak4PFJets_cfi import ak4PFJets
 from RecoMET.METProducers.PFMET_cfi import pfMet
 
+process.load('RecoEgamma.EgammaPhotonProducers.reducedEgamma_cfi')
+
+
 process.load("CondCore.DBCommon.CondDBCommon_cfi")
 from CondCore.DBCommon.CondDBSetup_cfi import *
 ## load Puppi stuff
@@ -51,16 +54,21 @@ process.puppimetinput = cms.EDProducer("CandViewMerger",
                                        src = cms.VInputTag( "pfCandLep","puppinolep")
                                        )
 
-from PhysicsTools.SelectorUtils.tools.vid_id_tools import *
-my_id_modules = ['RecoEgamma.PhotonIdentification.Identification.cutBasedPhotonID_PHYS14_PU20bx25_V2_cff']
-switchOnVIDPhotonIdProducer(process, DataFormat.AOD)
-for idmod in my_id_modules:
-  setupAllVIDIdsInModule(process,idmod,setupVIDPhotonSelection)
+from CommonTools.PileupAlgos.PhotonPuppi_cff        import setupPuppiPhoton,setupPuppiPhotonMiniAOD
 
 process.load('CommonTools/PileupAlgos/PhotonPuppi_cff')
 process.puppiPhoton.puppiCandName = 'puppimetinput'
-process.puppiPhoton.candName = 'particleFlow'
-process.puppiPhoton.photonName = 'gedPhotons'
+#process.puppiPhoton.candName = 'particleFlow'
+#process.puppiPhoton.photonName = 'gedPhotons'
+
+
+setupPuppiPhotonMiniAOD(process)
+process.egmPhotonIDs.physicsObjectSrc = cms.InputTag("reducedEgamma","reducedGedPhotons")
+process.photonIDValueMapProducer.src = cms.InputTag("reducedEgamma","reducedGedPhotons")
+process.photonRegressionValueMapProducer.src =  cms.InputTag("reducedEgamma","reducedGedPhotons")
+process.photonIDValueMapProducer.particleBasedIsolation = cms.InputTag("reducedEgamma","reducedPhotonPfCandMap")
+process.photonMVAValueMapProducer.src = cms.InputTag('reducedEgamma','reducedGedPhotons')
+
 
 # Include the stuff for Puppi MET
 process.pfMetPuppi = pfMet.clone();
@@ -78,7 +86,10 @@ for line in hlt_file.readlines():
 
     process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
     process.source = cms.Source("PoolSource",
-                                  fileNames = cms.untracked.vstring('/store/mc/RunIIFall15DR76/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/AODSIM/PU25nsData2015v1_76X_mcRun2_asymptotic_v12-v1/00000/004FE350-19BD-E511-9F01-00238BBD7672.root'
+                                  #fileNames = cms.untracked.vstring('file:/eos/cms/store/group/dpg_ecal/comm_ecal/cmkuo/9_4_6_p1/step3_RAW2DIGI_L1Reco_RECO_RECOSIM_EI_2.root' 
+                                  fileNames = cms.untracked.vstring(
+                                    #'/store/mc/RunIILowPUSpring18DR/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/AODSIM/94X_mc2017_realistic_v10For2017H_v1-v2/00000/004B2884-F0BE-E811-B7F4-0CC47A7452D8.root' 
+                                    'file:00B3D652-2B08-E911-A907-0CC47A4C8EA8.root'
                                   #fileNames = cms.untracked.vstring('/store/user/arapyan/mc/VBFHpmToWlnuZll_M800_13TeV-madgraph-pythia8/RunIIFall15DR76-PU25nsData2015v1_76X_mcRun2_asymptotic_v12/AODSIM/AOD_96001.root'
                                   )
                                 )
@@ -107,9 +118,9 @@ process.ntupler = cms.EDAnalyzer('NtuplerMod',
     edmBeamspotName      = cms.untracked.string('offlineBeamSpot'),
     edmPFMETName         = cms.untracked.string('pfMet'),
     #edmPFMETCorrName     = cms.untracked.string('pfType1CorrectedMet'),
-    edmPFMETCorrName     = cms.untracked.string('pfMetT1'),
+    edmPFMETCorrName     = cms.untracked.string('pfMet'),
     edmMVAMETName        = cms.untracked.string('pfMVAMEt30'),
-    edmPuppETName        = cms.untracked.string('pfType1PuppiCorrectedMet'),
+    edmPuppETName        = cms.untracked.string('pfMetPuppi'),
     edmTrackMET          = cms.untracked.string('pfChMet'),
     edmRhoForIsoName     = cms.untracked.string('fixedGridRhoFastjetAll'),
     edmRhoForJetEnergy   = cms.untracked.string('fixedGridRhoFastjetAll'),
@@ -150,6 +161,7 @@ process.ntupler = cms.EDAnalyzer('NtuplerMod',
     minPt         = cms.untracked.double(15),
     edmName       = cms.untracked.string('muons'),
     edmPFCandName = cms.untracked.string('particleFlow'),
+    edmBeamspotName           = cms.untracked.string('offlineBeamSpot'),
     
     # save general tracker tracks in our muon collection (used in tag-and-probe for muons)
     doSaveTracks = cms.untracked.bool(True),
@@ -181,12 +193,12 @@ process.ntupler = cms.EDAnalyzer('NtuplerMod',
                                  #  ),
                                  Jet = cms.untracked.PSet(
         isActive             = cms.untracked.bool(True),
-        minPt                = cms.untracked.double(27),
+        minPt                = cms.untracked.double(10),
         #    doComputeFullJetInfo = cms.untracked.bool(True),
         #    doGenJet             = ( cms.untracked.bool(False) if is_data_flag else cms.untracked.bool(True) ),
         #    
         #coneSizes = cms.untracked.vdouble(0.4),#,0.8,1.2),
-        postFix   = cms.untracked.vstring("CHS"),
+        #postFix   = cms.untracked.vstring("CHS"),
         #    
         edmPVName = cms.untracked.string('offlinePrimaryVertices'),
         ##    
@@ -211,7 +223,7 @@ process.ntupler = cms.EDAnalyzer('NtuplerMod',
         #                                         'BaconProd/Utils/data/TMVAClassificationCategory_JetID_53X_Dec2012.weights.xml'),
         #    
         # names of various jet-related collections
-        jetName            = cms.untracked.string('ak4PFJetsCHS'),
+        jetName            = cms.untracked.string('ak4PFJets'),
         #    genJetName         = cms.untracked.string('GenJets'),
         #    jetFlavorName      = cms.untracked.string('byValAlgo'),
         #    jetFlavorPhysName  = cms.untracked.string('byValPhys'),
@@ -235,17 +247,18 @@ process.ntupler = cms.EDAnalyzer('NtuplerMod',
 process.baconSequence = cms.Sequence(#process.PFBRECO*
   process.metFilters*
   #process.pfMVAMEt30Sequence* #MVA ME
-  process.producePFMETCorrections*
+  #process.producePFMETCorrections*
   process.pfCandNoLep*
   process.pfCandLep*
   process.puppinolep*
+  process.reducedEgamma*
   process.egmPhotonIDSequence*
   process.puppimetinput*
   process.puppiPhoton*
   process.pfMetPuppi* #  Puppi Met
-  process.ak4PFJetsPuppi* 
-  process.ak4PuppiL1FastL2L3Chain*
-  process.producePFMETCorrectionsPuppi *
+  #process.ak4PFJetsPuppi* 
+  #process.ak4PuppiL1FastL2L3Chain*
+  #process.producePFMETCorrectionsPuppi *
   #process.producePFMETCorrections*
   #process.recojetsequence*
   #process.genjetsequence*

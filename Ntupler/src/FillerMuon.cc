@@ -26,12 +26,14 @@ FillerMuon::FillerMuon(const edm::ParameterSet &iConfig,edm::ConsumesCollector &
   fMuonName  (iConfig.getUntrackedParameter<std::string>("edmName","muons")),
   fPFCandName(iConfig.getUntrackedParameter<std::string>("edmPFCandName","particleFlow")),
   fTrackName (iConfig.getUntrackedParameter<std::string>("edmTrackName","generalTracks")),
+  fBeamspotName (iConfig.getUntrackedParameter<std::string>("edmBeamspotName","beamspot")),
   fSaveTracks(iConfig.getUntrackedParameter<bool>("doSaveTracks",false)),
   fTrackMinPt(iConfig.getUntrackedParameter<double>("minTrackPt",20))
 {
   fMuonName_token = iC.consumes<reco::MuonCollection>(fMuonName);
   fPFCandName_token = iC.consumes<reco::PFCandidateCollection>(fPFCandName);
   fTrackName_token = iC.consumes<reco::TrackCollection>(fTrackName);
+  fBeamspotName_token = iC.consumes<reco::BeamSpot>(fBeamspotName);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -62,6 +64,10 @@ void FillerMuon::fill(TClonesArray *array,
   iEvent.getByToken(fTrackName_token,hTrackProduct);
   assert(hTrackProduct.isValid());
   const reco::TrackCollection *trackCol = hTrackProduct.product();
+
+  // Get beam spot
+  edm::Handle<reco::BeamSpot> theBeamSpot;
+  iEvent.getByToken(fBeamspotName_token,theBeamSpot);
   
   // Track builder for computing 3D impact parameter
   edm::ESHandle<TransientTrackBuilder> hTransientTrackBuilder;
@@ -118,6 +124,8 @@ void FillerMuon::fill(TClonesArray *array,
     //==============================
     pMuon->d0 = (-1)*(itMu->muonBestTrack()->dxy(pv.position()));  // note: d0 = -dxy
     pMuon->dz = itMu->muonBestTrack()->dz(pv.position());
+    pMuon->d0BS = (-1)*(itMu->muonBestTrack()->dxy(theBeamSpot->position()));
+    pMuon->dzBS = itMu->muonBestTrack()->dz(theBeamSpot->position());
     
     const reco::TransientTrack &tt = transientTrackBuilder->build(itMu->muonBestTrack());
     const double thesign = (pMuon->d0 >= 0) ? 1. : -1.;
@@ -255,6 +263,8 @@ void FillerMuon::fill(TClonesArray *array,
       //==============================
       pMuon->d0 = (-1)*(itTrk->dxy(pv.position()));  // note: d0 = -dxy
       pMuon->dz =  itTrk->dz(pv.position());
+      pMuon->d0BS = (-1)*(itTrk->dxy(theBeamSpot->position()));
+      pMuon->dzBS = itTrk->dz(theBeamSpot->position());
 
       const reco::TransientTrack &tt = transientTrackBuilder->build(&(*itTrk));
       const double thesign = (pMuon->d0 >= 0) ? 1. : -1.;

@@ -156,6 +156,8 @@ void FillerElectron::fill(TClonesArray *array,
     if(gsfTrack.isNonnull()) { 
       pElectron->d0 = (-1)*(gsfTrack->dxy(pv.position()));
       pElectron->dz = gsfTrack->dz(pv.position());
+      pElectron->d0BS = (-1)*gsfTrack->dxy(theBeamSpot->position());
+      pElectron->dzBS = gsfTrack->dz(theBeamSpot->position());
 
       pElectron->chi2 = gsfTrack->chi2();
       pElectron->ndof = gsfTrack->ndof();

@@ -48,6 +48,8 @@ namespace baconhep
       edm::EDGetTokenT<reco::PFCandidateCollection> fPFCandName_token;
       std::string fTrackName;
       edm::EDGetTokenT<reco::TrackCollection> fTrackName_token;
+      std::string fBeamspotName;
+      edm::EDGetTokenT<reco::BeamSpot> fBeamspotName_token;
 
       // general tracks cuts
       bool   fSaveTracks;
